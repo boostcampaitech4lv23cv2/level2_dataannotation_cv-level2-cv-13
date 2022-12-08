@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import random
 import time
 import math
 from datetime import timedelta
@@ -16,17 +17,8 @@ from dataset import SceneTextDataset
 from model import EAST
 
 import wandb
+import numpy as np
 
-wandb.login()
-wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name="balseline")
-
-wandb.config = {
-  "learning_rate": 0.001,
-  "max_epoch": 100,
-  "batch_size": 128
-}
-
-config = wandb.config
 
 
 def parse_args():
@@ -44,16 +36,25 @@ def parse_args():
     parser.add_argument('--image_size', type=int, default=1024)
     parser.add_argument('--input_size', type=int, default=512)
     parser.add_argument('--batch_size', type=int, default=24)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser.add_argument('--learning_rate', type=float, default=1e-5)
     parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--save_interval', type=int, default=5)
-
+    parser.add_argument('--seed',type=int,default=42)
     args = parser.parse_args()
 
     if args.input_size % 32 != 0:
         raise ValueError('`input_size` must be a multiple of 32')
 
     return args
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
@@ -113,4 +114,8 @@ def main(args):
 
 if __name__ == '__main__':
     args = parse_args()
+    set_seed(args.seed)
+    wandb.login()
+    wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=str(args.lr)+str(args.batch_size)+str(args.))
+    wandb.config.update(args)
     main(args)
