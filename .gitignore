@@ -8,3 +8,4 @@
 .redhat
 .gitconfig
 /code/pths/
+*.pth
