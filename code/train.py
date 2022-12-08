@@ -15,6 +15,19 @@ from east_dataset import EASTDataset
 from dataset import SceneTextDataset
 from model import EAST
 
+import wandb
+
+wandb.login()
+wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name="balseline")
+
+wandb.config = {
+  "learning_rate": 0.001,
+  "max_epoch": 100,
+  "batch_size": 128
+}
+
+config = wandb.config
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -57,6 +70,9 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1)
 
     model.train()
+
+
+    
     for epoch in range(max_epoch):
         epoch_loss, epoch_start = 0, time.time()
         with tqdm(total=num_batches) as pbar:
@@ -77,9 +93,9 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                     'IoU loss': extra_info['iou_loss']
                 }
                 pbar.set_postfix(val_dict)
+                wandb.log({"loss": epoch_loss,'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'], 'IoU loss': extra_info['iou_loss']})
 
-        scheduler.step()
-
+        scheduler.step()      
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
             epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
 
