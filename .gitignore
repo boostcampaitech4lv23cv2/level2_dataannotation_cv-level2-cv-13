@@ -1,0 +1,10 @@
+.vscode-server
+.local
+.ipython
+.cache
+.wget-hsts
+.bash_history
+.profile
+.redhat
+.gitconfig
+/code/pths/
