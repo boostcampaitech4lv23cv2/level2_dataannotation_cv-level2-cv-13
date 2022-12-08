@@ -40,6 +40,8 @@ def parse_args():
     parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--save_interval', type=int, default=5)
     parser.add_argument('--seed',type=int,default=42)
+    parser.add_argument('--parent_run_num',type=str,default="000")
+    parser.add_argument('--note',type=str,default="None")
     args = parser.parse_args()
 
     if args.input_size % 32 != 0:
@@ -58,7 +60,7 @@ def set_seed(seed):
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval):
+                learning_rate, max_epoch, save_interval,**kwargs):
     dataset = SceneTextDataset(data_dir, split='train', image_size=image_size, crop_size=input_size)
     dataset = EASTDataset(dataset)
     num_batches = math.ceil(len(dataset) / batch_size)
@@ -116,6 +118,7 @@ if __name__ == '__main__':
     args = parse_args()
     set_seed(args.seed)
     wandb.login()
-    wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=str(args.lr)+str(args.batch_size)+str(args.))
+    runs=wandb.Api().runs(path="boostcamp_cv13/Data_Preparation",order="created_at")
+    wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=f"[{int(runs[0].name[1:4])+1:03d}]-[{args.parent_run_num}]")
     wandb.config.update(args)
     main(args)
