@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--val_interval', type=int, default=10)
-    parser.add_argument('--seed',type=int,default=31415926535897)
+    parser.add_argument('--seed',type=int,default=3141592)
     parser.add_argument('--parent_run_num',type=str,default="000")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
     parser.add_argument('--note',type=str,default="This will be augmented data run2 on tmux")
