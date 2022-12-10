@@ -102,9 +102,10 @@ def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size
                     'IoU loss': extra_info['iou_loss']
                 }
                 pbar.set_postfix(val_dict)
-                wandb.log({"Train/loss": epoch_loss,'Train/Cls loss': extra_info['cls_loss'], 'Train/Angle loss': extra_info['angle_loss'], 'Train/IoU loss': extra_info['iou_loss'],"Learning rate":scheduler.get_lr() })
+                wandb.log({"Train/loss": epoch_loss,'Train/Cls loss': extra_info['cls_loss'], 'Train/Angle loss': extra_info['angle_loss'], 'Train/IoU loss': extra_info['iou_loss'],"Learning_rate":scheduler.optimizer.param_groups[0]['lr']})
 
-        scheduler.step()      
+        scheduler.step()
+        wandb.log({"Learning rate":scheduler.get_lr() })   
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
             epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
 
