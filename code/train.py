@@ -42,7 +42,7 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--max_epoch', type=int, default=200)
     parser.add_argument('--val_interval', type=int, default=10)
-    parser.add_argument('--seed',type=int,default=42)
+    parser.add_argument('--seed',type=int,default=31415926535897)
     parser.add_argument('--parent_run_num',type=str,default="000")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
     parser.add_argument('--note',type=str,default="This will be augmented data run2 on tmux")
@@ -102,7 +102,7 @@ def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size
                     'IoU loss': extra_info['iou_loss']
                 }
                 pbar.set_postfix(val_dict)
-                wandb.log({"Train/loss": epoch_loss,'Train/Cls loss': extra_info['cls_loss'], 'Train/Angle loss': extra_info['angle_loss'], 'Train/IoU loss': extra_info['iou_loss']})
+                wandb.log({"Train/loss": epoch_loss,'Train/Cls loss': extra_info['cls_loss'], 'Train/Angle loss': extra_info['angle_loss'], 'Train/IoU loss': extra_info['iou_loss'],"Learning rate":scheduler.get_lr() })
 
         scheduler.step()      
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
