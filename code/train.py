@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--parent_run_num',type=str,default="000")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
-    parser.add_argument('--note',type=str,default="Test run augmented dataset")
+    parser.add_argument('--note',type=str,default="This will be augmented data run2 on tmux")
     ###########################################################
     parser.add_argument('--save_top_k',type=int,default=3)
     args = parser.parse_args()
@@ -189,5 +189,4 @@ if __name__ == '__main__':
     wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=this_run_name)
     wandb.config.update(args)
     main(args)
-    runs.up
 
