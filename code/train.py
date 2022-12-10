@@ -27,7 +27,7 @@ def parse_args():
 
     # Conventional args
     parser.add_argument('--data_dir', type=str,
-                        default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/ICDAR17_Korean'))
+                        default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data'))
     parser.add_argument('--val_data_dir', type=str,
                         default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/ICDAR17_Korean'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR',
@@ -45,7 +45,8 @@ def parse_args():
     parser.add_argument('--seed',type=int,default=42)
     parser.add_argument('--parent_run_num',type=str,default="000")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
-    parser.add_argument('--note',type=str,default="Test seed 42")
+    parser.add_argument('--note',type=str,default="Test run augmented dataset")
+    ###########################################################
     parser.add_argument('--save_top_k',type=int,default=3)
     args = parser.parse_args()
 
@@ -131,6 +132,7 @@ def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size
     best=get_best(model_dir)
     artifact=wandb.Artifact('model_pth',type='model')
     artifact.add_file(osp.join(model_dir,best))
+    wandb.log_artifact(artifact)
 
 def get_best(dir):
     files = os.listdir(dir)
@@ -187,4 +189,5 @@ if __name__ == '__main__':
     wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=this_run_name)
     wandb.config.update(args)
     main(args)
+    runs.up
 
