@@ -26,7 +26,7 @@ def parse_args():
 
     # Conventional args
     parser.add_argument('--data_dir', type=str,
-                        default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/ICDAR17_Korean'))
+                        default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR',
                                                                         'trained_models'))
 
@@ -58,7 +58,7 @@ def set_seed(seed):
 
 
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, save_interval):
+                learning_rate, max_epoch, save_interval, **kwargs):
     dataset = SceneTextDataset(data_dir, split='train', image_size=image_size, crop_size=input_size)
     dataset = EASTDataset(dataset)
     num_batches = math.ceil(len(dataset) / batch_size)
@@ -94,7 +94,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                     'IoU loss': extra_info['iou_loss']
                 }
                 pbar.set_postfix(val_dict)
-                wandb.log({"loss": epoch_loss,'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'], 'IoU loss': extra_info['iou_loss']})
+                # wandb.log({"loss": epoch_loss,'Cls loss': extra_info['cls_loss'], 'Angle loss': extra_info['angle_loss'], 'IoU loss': extra_info['iou_loss']})
 
         scheduler.step()      
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
@@ -115,7 +115,7 @@ def main(args):
 if __name__ == '__main__':
     args = parse_args()
     set_seed(args.seed)
-    wandb.login()
-    wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=str(args.lr)+str(args.batch_size)+str(args.))
-    wandb.config.update(args)
+    # wandb.login()
+    # wandb.init(project="Data_Preparation", entity="boostcamp_cv13", name=str(args.lr)+str(args.batch_size)+str(args.))
+    # wandb.config.update(args)
     main(args)

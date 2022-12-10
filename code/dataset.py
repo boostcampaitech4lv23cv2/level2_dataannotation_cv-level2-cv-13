@@ -9,6 +9,74 @@ import cv2
 import albumentations as A
 from torch.utils.data import Dataset
 from shapely.geometry import Polygon
+from scipy.spatial import ConvexHull
+from scipy.ndimage.interpolation import rotate
+
+
+def minimum_bounding_rectangle(points):
+    """
+    Find the smallest bounding rectangle for a set of points.
+    Returns a set of points representing the corners of the bounding box.
+
+    :param points: an nx2 matrix of coordinates
+    :rval: an nx2 matrix of coordinates
+    """
+    pi2 = np.pi/2.
+
+    # get the convex hull for the points
+    hull_points = points[ConvexHull(points).vertices]
+
+    # calculate edge angles
+    edges = np.zeros((len(hull_points)-1, 2))
+    edges = hull_points[1:] - hull_points[:-1]
+
+    angles = np.zeros((len(edges)))
+    angles = np.arctan2(edges[:, 1], edges[:, 0])
+
+    angles = np.abs(np.mod(angles, pi2))
+    angles = np.unique(angles)
+
+    # find rotation matrices
+    # XXX both work
+    rotations = np.vstack([
+        np.cos(angles),
+        np.cos(angles-pi2),
+        np.cos(angles+pi2),
+        np.cos(angles)]).T
+    #     rotations = np.vstack([
+    #         np.cos(angles),
+    #         -np.sin(angles),
+    #         np.sin(angles),
+    #         np.cos(angles)]).T
+    rotations = rotations.reshape((-1, 2, 2))
+
+    # apply rotations to the hull
+    rot_points = np.dot(rotations, hull_points.T)
+
+    # find the bounding points
+    min_x = np.nanmin(rot_points[:, 0], axis=1)
+    max_x = np.nanmax(rot_points[:, 0], axis=1)
+    min_y = np.nanmin(rot_points[:, 1], axis=1)
+    max_y = np.nanmax(rot_points[:, 1], axis=1)
+
+    # find the box with the best area
+    areas = (max_x - min_x) * (max_y - min_y)
+    best_idx = np.argmin(areas)
+
+    # return the best box
+    x1 = max_x[best_idx]
+    x2 = min_x[best_idx]
+    y1 = max_y[best_idx]
+    y2 = min_y[best_idx]
+    r = rotations[best_idx]
+
+    rval = np.zeros((4, 2))
+    rval[0] = np.dot([x1, y2], r)
+    rval[1] = np.dot([x2, y2], r)
+    rval[2] = np.dot([x2, y1], r)
+    rval[3] = np.dot([x1, y1], r)
+
+    return rval
 
 
 def cal_distance(x1, y1, x2, y2):
@@ -323,7 +391,7 @@ def filter_vertices(vertices, labels, ignore_under=0, drop_under=0):
 
     new_vertices, new_labels = vertices.copy(), labels.copy()
 
-    areas = np.array([Polygon(v.reshape((4, 2))).convex_hull.area for v in vertices])
+    areas = np.array([Polygon(v.reshape((-1, 2))).convex_hull.area for v in vertices])
     labels[areas < ignore_under] = 0
 
     if drop_under > 0:
@@ -339,9 +407,10 @@ class SceneTextDataset(Dataset):
         with open(osp.join(root_dir, 'ufo/{}.json'.format(split)), 'r') as f:
             anno = json.load(f)
 
+        self.root_dir = root_dir
         self.anno = anno
         self.image_fnames = sorted(anno['images'].keys())
-        self.image_dir = osp.join(root_dir, 'images')
+        # self.image_dir = osp.join(root_dir, 'images')
 
         self.image_size, self.crop_size = image_size, crop_size
         self.color_jitter, self.normalize = color_jitter, normalize
@@ -351,13 +420,18 @@ class SceneTextDataset(Dataset):
 
     def __getitem__(self, idx):
         image_fname = self.image_fnames[idx]
-        image_fpath = osp.join(self.image_dir, image_fname)
+        image_fpath = osp.join(self.root_dir, image_fname)
 
         vertices, labels = [], []
         for word_info in self.anno['images'][image_fname]['words'].values():
-            vertices.append(np.array(word_info['points']).flatten())
+            if len(np.array(word_info['points']).flatten()) != 8:
+                vertices.append(minimum_bounding_rectangle(np.array(word_info['points'])).flatten())
+            else: 
+                vertices.append(np.array(word_info['points']).flatten())
             labels.append(int(not word_info['illegibility']))
         vertices, labels = np.array(vertices, dtype=np.float32), np.array(labels, dtype=np.int64)
+        # print(vertices)
+        # vertices = vertices.astype(np.float32)
 
         vertices, labels = filter_vertices(vertices, labels, ignore_under=10, drop_under=1)
 
