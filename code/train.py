@@ -73,7 +73,7 @@ def get_scheduler(scheduler_type,optimizer,max_epoch,learning_rate):
         "MultiStepLR":lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1),
         "StepLR":lr_scheduler.StepLR(optimizer, step_size=max_epoch//4, gamma=0.5),
         "CosineAnnealingWarmRestarts":lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=30,T_mult=1,eta_min=learning_rate//10),
-        "MultiStepLR":lr_scheduler.MultiStepLR(optimizer,milestones=list(range(0,max_epoch,max_epoch//3)),gamma=0.5),
+        #"MultiStepLR":lr_scheduler.MultiStepLR(optimizer,milestones=list(range(0,max_epoch,max_epoch//3)),gamma=0.5),
         "ExponentialLR":lr_scheduler.ExponentialLR(optimizer,gamma=0.95),
         "CosineAnnealingLR":lr_scheduler.CosineAnnealingLR(optimizer, T_max=50,eta_min=learning_rate//10),
         "CyclicLR":lr_scheduler.CyclicLR(optimizer, base_lr=learning_rate//10,max_lr=learning_rate,step_size_up=20,step_size_down=30,mode="triangular",cycle_momentum=False)
