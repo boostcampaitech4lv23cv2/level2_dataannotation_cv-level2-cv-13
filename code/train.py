@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--val_data_dir', type=str,
                         default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/ICDAR17_Korean'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR',
-                                                                        '/opt/ml/outputs'))
+                                                                        '/opt/ml/input/data/outputs'))
 
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
     parser.add_argument('--num_workers', type=int, default=4)
@@ -41,13 +41,14 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=12)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--max_epoch', type=int, default=200)
-    parser.add_argument('--val_interval', type=int, default=10)
+    parser.add_argument('--val_interval', type=int, default=5)
     parser.add_argument('--seed',type=int,default=3141592)
-    parser.add_argument('--parent_run_num',type=str,default="000")
+    parser.add_argument('--parent_run_num',type=str,default="008")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
-    parser.add_argument('--note',type=str,default="This will be augmented data run2 on tmux")
+    parser.add_argument('--note',type=str,default="This will be augmented data steplr testing with 50 step with 0.5 gamma")
     ###########################################################
     parser.add_argument('--save_top_k',type=int,default=3)
+    parser.add_argument("--scheduler_type",type=str,default="StepLR")
     args = parser.parse_args()
 
     if args.input_size % 32 != 0:
@@ -64,9 +65,23 @@ def set_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
 
+def get_scheduler(scheduler_type,optimizer,max_epoch,learning_rate):
+    schedulers={
+        "MultiStepLR":lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1),
+        "StepLR":lr_scheduler.StepLR(optimizer, step_size=max_epoch//4, gamma=0.5),
+        "CosineAnnealingWarmRestarts":lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=30,T_mult=1.5,eta_min=learning_rate//10),
+        "MultiStepLR":lr_scheduler.MultiStepLR(optimizer,milestones=list(range(0,max_epoch,max_epoch//3)),gamma=0.5),
+        "ExponentialLR":lr_scheduler.ExponentialLR(optimizer,gamma=0.95),
+        "CosineAnnealingLR":lr_scheduler.CosineAnnealingLR(optimizer, T_max=50,eta_min=learning_rate//10),
+        "CyclicLR":lr_scheduler.CyclicLR(optimizer, base_lr=learning_rate//10,max_lr=learning_rate,step_size_up=20,step_size_down=30,mode="triangular")
+    }
+    
+    assert scheduler_type in schedulers, "The scheduler is not in the collection"
+        
+    return schedulers[scheduler_type]
 
 def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
-                learning_rate, max_epoch, val_interval,save_top_k,**kwargs):
+                learning_rate, max_epoch, val_interval,save_top_k,scheduler_type,**kwargs):
     dataset = SceneTextDataset(data_dir, split='train', image_size=image_size, crop_size=input_size)
     dataset = EASTDataset(dataset)
     num_batches = math.ceil(len(dataset) / batch_size)
@@ -77,7 +92,7 @@ def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size
     model = EAST()
     model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1)
+    scheduler=get_scheduler(scheduler_type,optimizer,max_epoch,learning_rate)
 
     model_dir=osp.join(model_dir,this_run_name)
     
@@ -105,7 +120,6 @@ def do_training(data_dir,val_data_dir, model_dir, device, image_size, input_size
                 wandb.log({"Train/loss": epoch_loss,'Train/Cls loss': extra_info['cls_loss'], 'Train/Angle loss': extra_info['angle_loss'], 'Train/IoU loss': extra_info['iou_loss'],"Learning_rate":scheduler.optimizer.param_groups[0]['lr']})
 
         scheduler.step()
-        wandb.log({"Learning rate":scheduler.get_lr() })   
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
             epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
 

@@ -21,8 +21,8 @@ def parse_args():
 
     # Conventional args
     parser.add_argument('--data_dir', default=os.environ.get('SM_CHANNEL_EVAL'))
-    parser.add_argument('--model_dir', default=os.environ.get('SM_CHANNEL_MODEL', 'trained_models'))
-    parser.add_argument('--output_dir', default=os.environ.get('SM_OUTPUT_DATA_DIR', 'predictions'))
+    parser.add_argument('--model_dir', default=os.environ.get('SM_CHANNEL_MODEL', '/opt/ml/trained_models'))
+    parser.add_argument('--output_dir', default=os.environ.get('SM_OUTPUT_DATA_DIR', '/opt/ml/predictions'))
 
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
     parser.add_argument('--input_size', type=int, default=1024)
@@ -61,13 +61,17 @@ def do_inference(model, ckpt_fpath, data_dir, input_size, batch_size, split='pub
 
     return ufo_result
 
+def get_best(dir):
+    files = os.listdir(dir)
+    files.sort(reverse=True)
+    return files[0]
 
 def main(args):
     # Initialize model
     model = EAST(pretrained=False).to(args.device)
 
     # Get paths to checkpoint files
-    ckpt_fpath = osp.join(args.model_dir, 'latest.pth')
+    ckpt_fpath = osp.join(args.model_dir, get_best(args.model_dir))
 
     if not osp.exists(args.output_dir):
         os.makedirs(args.output_dir)
