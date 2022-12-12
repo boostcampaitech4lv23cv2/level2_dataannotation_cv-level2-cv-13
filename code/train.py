@@ -22,6 +22,7 @@ import numpy as np
 from detect import detect
 from PIL import Image
 from deteval import calc_deteval_metrics
+
 def parse_args():
     parser = ArgumentParser()
 
@@ -34,21 +35,21 @@ def parse_args():
                                                                         '/opt/ml/input/data/outputs'))
 
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
-    parser.add_argument('--num_workers', type=int, default=4)
+    parser.add_argument('--num_workers', type=int, default=4) # default = 4
 
-    parser.add_argument('--image_size', type=int, default=1024)
-    parser.add_argument('--input_size', type=int, default=512)
-    parser.add_argument('--batch_size', type=int, default=12)
-    parser.add_argument('--learning_rate', type=float, default=1e-3)
+    parser.add_argument('--image_size', type=int, default=1024) # default = 1024
+    parser.add_argument('--input_size', type=int, default=512) # default = 512
+    parser.add_argument('--batch_size', type=int, default=12) # default = 12
+    parser.add_argument('--learning_rate', type=float, default=1e-3) # default = 1e-3
     parser.add_argument('--max_epoch', type=int, default=200)
-    parser.add_argument('--val_interval', type=int, default=5)
-    parser.add_argument('--seed',type=int,default=3141592)
-    parser.add_argument('--parent_run_num',type=str,default="008")
+    parser.add_argument('--val_interval', type=int, default=10)
+    parser.add_argument('--seed',type=int,default=2022)
+    parser.add_argument('--parent_run_num',type=str,default="010")
     ############## PLEASE WRITE NOTE BEFORE RUN ###############
-    parser.add_argument('--note',type=str,default="This will be augmented data steplr testing with 50 step with 0.5 gamma")
+    parser.add_argument('--note',type=str,default="This will be augmented data steplr testing")
     ###########################################################
     parser.add_argument('--save_top_k',type=int,default=3)
-    parser.add_argument("--scheduler_type",type=str,default="StepLR")
+    parser.add_argument("--scheduler_type",type=str,default="MultiStepLR")
     args = parser.parse_args()
 
     if args.input_size % 32 != 0:
@@ -64,16 +65,18 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
 
 def get_scheduler(scheduler_type,optimizer,max_epoch,learning_rate):
     schedulers={
         "MultiStepLR":lr_scheduler.MultiStepLR(optimizer, milestones=[max_epoch // 2], gamma=0.1),
         "StepLR":lr_scheduler.StepLR(optimizer, step_size=max_epoch//4, gamma=0.5),
-        "CosineAnnealingWarmRestarts":lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=30,T_mult=1.5,eta_min=learning_rate//10),
+        "CosineAnnealingWarmRestarts":lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=30,T_mult=1,eta_min=learning_rate//10),
         "MultiStepLR":lr_scheduler.MultiStepLR(optimizer,milestones=list(range(0,max_epoch,max_epoch//3)),gamma=0.5),
         "ExponentialLR":lr_scheduler.ExponentialLR(optimizer,gamma=0.95),
         "CosineAnnealingLR":lr_scheduler.CosineAnnealingLR(optimizer, T_max=50,eta_min=learning_rate//10),
-        "CyclicLR":lr_scheduler.CyclicLR(optimizer, base_lr=learning_rate//10,max_lr=learning_rate,step_size_up=20,step_size_down=30,mode="triangular")
+        "CyclicLR":lr_scheduler.CyclicLR(optimizer, base_lr=learning_rate//10,max_lr=learning_rate,step_size_up=20,step_size_down=30,mode="triangular",cycle_momentum=False)
     }
     
     assert scheduler_type in schedulers, "The scheduler is not in the collection"
