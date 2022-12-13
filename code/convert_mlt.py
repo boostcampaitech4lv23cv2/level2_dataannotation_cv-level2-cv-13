@@ -268,6 +268,83 @@ class MLT15Dataset(Dataset):
 
         return words_info, dict(languages=languages)
 
+class AIHUBDataset(Dataset):
+    def __init__(self, source_dir, image_dir, label_dir, copy_images_to=None):
+        self.image_dir = image_dir
+        new_image_dir = osp.join(source_dir, image_dir)
+        new_image_dir = osp.join(new_image_dir, 'vertical_sign')
+        image_paths = glob(osp.join(new_image_dir, '*'))
+        label_paths = set(glob(osp.join(label_dir, '*.json')))
+        assert len(image_paths) == len(label_paths)
+
+        sample_ids, samples_info = list(), dict()
+        for image_path in image_paths:
+            sample_id = osp.splitext(osp.basename(image_path))[0]
+            label_path = osp.join(label_dir, '{}.json'.format(sample_id))
+            assert label_path in label_paths
+
+            words_info, extra_info = self.parse_label_file(label_path)
+            # if 'ko' not in extra_info['languages'] and 'en' not in extra_info['languages']:
+            #     continue
+
+            sample_ids.append(sample_id)
+            samples_info[sample_id] = dict(image_path=image_path, label_path=label_path,
+                                           words_info=words_info)
+
+        self.sample_ids, self.samples_info = sample_ids, samples_info
+
+        self.copy_images_to = copy_images_to
+
+    def __len__(self):
+        return len(self.sample_ids)
+
+    def __getitem__(self, idx):
+        sample_info = self.samples_info[self.sample_ids[idx]]
+
+        image_fname = osp.basename(sample_info['image_path'])
+        image = Image.open(sample_info['image_path'])
+        img_w, img_h = image.size
+
+        if self.copy_images_to:
+            maybe_mkdir(self.copy_images_to)
+            image.save(osp.join(self.copy_images_to, osp.basename(sample_info['image_path'])))
+
+        license_tag = dict(usability=True, public=True, commercial=True, type='CC-BY-SA',
+                           holder=None)
+        sample_info_ufo = dict(img_h=img_h, img_w=img_w, words=sample_info['words_info'], tags=None,
+                               license_tag=license_tag)
+        ####  modified ###                    
+        image_path = self.image_dir + '/vertical_sign/' + image_fname
+
+        return image_path, sample_info_ufo
+
+    def parse_label_file(self, label_path):
+        def rearrange_points(points):
+            start_idx = np.argmin([np.linalg.norm(p, ord=1) for p in points])
+            if start_idx != 0:
+                points = np.roll(points, -start_idx, axis=0).tolist()
+            return points
+
+        with open(label_path, 'r', encoding = 'utf-8') as file:
+            data = json.load(file)
+
+        words_info, languages = dict(), set()
+        for d in data['annotations']:
+            language, transcription = 'ko', d['text']
+            x,y = d['bbox'][0], d['bbox'][1]
+            points = [x,y,x + d['bbox'][2],y,x + d['bbox'][2],y + d['bbox'][3],x,y + d['bbox'][3]]
+            points = np.array(points, dtype=np.float32).reshape(4, 2).tolist()
+            points = rearrange_points(points)
+            orientation = 'Vertical'
+            language = get_language_token(language)
+            illegibility = True if (language != 'en' and language != 'ko') or transcription == 'xxx' else False
+            words_info[d['id']-1] = dict(
+                points=points, transcription=transcription, language=[language],
+                illegibility=illegibility, orientation=orientation, word_tags=None
+            )
+            languages.add(language)
+        ###line feed ###
+        return words_info, dict(languages=languages)
 
 def main():
     dst_image_dir = osp.join(DST_DATASET_DIR, 'images')
@@ -285,7 +362,10 @@ def main():
     ICDAR2015 = MLT15Dataset(SRC_DATASET_DIR, 'ICDAR15',
                              osp.join(SRC_DATASET_DIR, 'ICDAR15/ICDAR15-gt'),
                              copy_images_to=None)
-    mlt_merged = ConcatDataset([ICDAR2017_val, ICDAR2017, ICDAR2019, ICDAR2015])
+    hub = AIHUBDataset(SRC_DATASET_DIR, 'AI_hub',
+                             osp.join(SRC_DATASET_DIR, 'AI_hub/annotation'),
+                             copy_images_to=None)
+    mlt_merged = ConcatDataset([ICDAR2017_val, ICDAR2017, ICDAR2019, ICDAR2015, hub])
 
     anno = dict(images=dict())
     with tqdm(total=len(mlt_merged)) as pbar:

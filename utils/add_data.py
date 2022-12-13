@@ -7,6 +7,7 @@ import gdown
 import os
 import glob
 import zipfile
+from zipfile import ZipFile
 import shutil
 
 ##boolean parsing
@@ -24,13 +25,13 @@ def parse_args():
     parser = ArgumentParser()
 
     # Conventional args
-    parser.add_argument('--file_id', type=str, default='1EsCTJ7K47BgOMiVxZFu38m6m4-NBUMnv')
-    parser.add_argument('--output_dir', type=str, default='../input/data/custom/')
-    parser.add_argument('--output_file_name', type=str, default='data.zip')
+    parser.add_argument('--file_id', type=str, default='1-606lsyM3XHPnBKdw2qBrknxCOYKas6j')
+    parser.add_argument('--output_dir', type=str, default='../input/data/')
+    parser.add_argument('--output_file_name', type=str, default='vertical_data.zip')
     parser.add_argument('--download_option', type=str2bool, default=True)
     parser.add_argument('--decompress_option', type=str2bool, default=True)
     parser.add_argument('--erase_images', type=str2bool, default=False)
-    
+    parser.add_argument('--korean_title', type=str2bool, default=False)
     args = parser.parse_args()
     
     return args
@@ -41,11 +42,16 @@ def download_gdrive(file_id, output_name, output_dir):
     gdown.download(google_path + file_id, output_dir + output_name, quiet = False)
 
 #decompress zip file
-def decompress(output_name, output_dir):
-    zipfile.ZipFile(output_dir + output_name).extractall(path= output_dir + 'images/')
-    ann_name = 'annotation.json'
-    dir = output_dir + 'ufo/'
-    shutil.move(output_dir + 'images/' + ann_name, dir + ann_name )
+def decompress(output_name, output_dir, korean):
+    if korean:
+        with ZipFile(output_dir + output_name, 'r') as zf:
+            zipinfo = zf.infolist()  
+            for member in zipinfo:
+                member.filename = member.filename.encode('cp437').decode('euc-kr')
+                zf.extract(member, path= output_dir + 'images/')
+    else:
+        zipfile.ZipFile(output_dir + output_name).extractall(path= output_dir + 'images/')
+        
 #erase image data    
 def erase(output_dir):
     [os.remove(f) for f in glob.glob(output_dir+"*.JPG")]
@@ -56,7 +62,7 @@ def main(args):
     if args.download_option == True:
         download_gdrive(args.file_id, args.output_file_name, args.output_dir)
     if args.decompress_option == True:
-        decompress(args.output_file_name, args.output_dir)
+        decompress(args.output_file_name, args.output_dir, args.korean_title)
     if args.erase_images:
         erase(args.output_dir)
 
