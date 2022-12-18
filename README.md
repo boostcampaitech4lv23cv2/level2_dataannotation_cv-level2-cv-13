@@ -97,7 +97,7 @@ pytorch=1.7.1
 ```
 
 ## 🎉Results🎉
->### Public LB : 4th (f1 0.7166)
+>### Public LB : 2nd (f1 0.7166)
 ![image](https://s3.us-west-2.amazonaws.com/secure.notion-static.com/d934250b-9dbd-4ef5-8b64-2a03589474b7/Untitled.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAT73L2G45EIPT3X45%2F20221216%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221216T081647Z&X-Amz-Expires=86400&X-Amz-Signature=47d35ba427930b2c206305c997d550db8bbb37459fd596215315d868d0e72f3b&X-Amz-SignedHeaders=host&response-content-disposition=filename%3D%22Untitled.png%22&x-id=GetObject)
 >### Private LB : 4th (f1 0.7034)
 ![image](https://s3.us-west-2.amazonaws.com/secure.notion-static.com/e6226b02-2237-4ac5-ae74-bdb2561a5eed/Untitled.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIAT73L2G45EIPT3X45%2F20221216%2Fus-west-2%2Fs3%2Faws4_request&X-Amz-Date=20221216T081727Z&X-Amz-Expires=86400&X-Amz-Signature=f405afbccd901c77ff21a203e55dc08b443f3c37d39b1936ed335316012f8eb4&X-Amz-SignedHeaders=host&response-content-disposition=filename%3D%22Untitled.png%22&x-id=GetObject)
